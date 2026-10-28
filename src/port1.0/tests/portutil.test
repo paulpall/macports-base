@@ -861,7 +861,18 @@ test supportedArchiveTypes {
 
 # test find_portarchie_path
 # test archiveTypeIsSupported
-# test extract_archive_metadata
+test archive_metadata_tbz2 {Read +CONTENTS with Tiger's tar, including paths containing spaces.} -setup {
+    set archive_dir [makeDirectory {archive metadata}]
+    set archive_path [file join $archive_dir {test archive.tbz2}]
+    set fd [open [file join $archive_dir +CONTENTS] w]
+    puts $fd {@portname tiger-metadata-test}
+    close $fd
+    exec [findBinary tar $portutil::autoconf::tar_path] -cjf $archive_path -C $archive_dir ./+CONTENTS
+} -body {
+    extract_archive_metadata $archive_path tbz2 {portname}
+} -cleanup {
+    removeDirectory {archive metadata}
+} -result {portname tiger-metadata-test}
 
 # test merge_lipo
 # test merge_cpp

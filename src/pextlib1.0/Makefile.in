@@ -65,6 +65,7 @@ endif
 test:: ${SHLIB_NAME}
 	${TCLSH} $(srcdir)/tests/checksums.tcl ./${SHLIB_NAME}
 	${TCLSH} $(srcdir)/tests/curl.tcl ./${SHLIB_NAME}
+	${TCLSH} $(srcdir)/tests/curl-local.tcl ./${SHLIB_NAME}
 	${TCLSH} $(srcdir)/tests/filemap.tcl ./${SHLIB_NAME}
 	${TCLSH} $(srcdir)/tests/fs-traverse.tcl ./${SHLIB_NAME}
 	${TCLSH} $(srcdir)/tests/symlink.tcl ./${SHLIB_NAME}

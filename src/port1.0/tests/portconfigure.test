@@ -1,0 +1,59 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+# Copyright (c) 2026 The MacPorts Project. See LICENSE for terms.
+
+package require tcltest 2
+namespace import tcltest::*
+set pwd [file dirname [file normalize $argv0]]
+source ../port_test_autoconf.tcl
+package require macports 1.0
+array set ui_options {}
+mportinit ui_options
+source ./library.tcl
+macports_worker_init
+package require port 1.0
+package require portconfigure 1.0
+
+test clang_fallback_tiger {Fallback compiler choices respect Tiger and Leopard availability.} -setup {
+    set saved_major ${os.major}
+    set saved_platform ${os.platform}
+    set porturl file://$pwd
+    rename getportresourcepath saved_getportresourcepath
+    proc getportresourcepath {args} {return /nonexistent/macports-test-resource}
+} -body {
+    set os.platform darwin
+    set os.major 8
+    set tiger [portconfigure::get_clang_compilers]
+    set os.major 9
+    list $tiger [portconfigure::get_clang_compilers]
+} -cleanup {
+    rename getportresourcepath {}
+    rename saved_getportresourcepath getportresourcepath
+    set os.major $saved_major
+    set os.platform $saved_platform
+} -result {{macports-clang-3.4 macports-clang-3.3} {macports-clang-7.0 macports-clang-6.0 macports-clang-5.0 macports-clang-3.7 macports-clang-3.4}}
+
+foreach {version expected} {500 second 600 first {} second} {
+    test compiler_version_blacklist_$version {Version blacklists work without a PortGroup, failing closed for unknown versions.} -setup {
+        set saved_blacklist ${compiler.blacklist}
+        set saved_whitelist ${compiler.whitelist}
+        rename compiler.command_line_tools_version saved_compiler_version
+        proc compiler.command_line_tools_version {compiler} {return $::version}
+        rename portconfigure::configure_get_compiler portconfigure::saved_get_compiler
+        proc portconfigure::configure_get_compiler {args} {return /usr/bin/true}
+        set compiler.whitelist {first second}
+        set compiler.blacklist {{first < 600}}
+        set portconfigure::recompute_default_compiler 1
+    } -body {
+        portconfigure::configure_get_default_compiler
+    } -cleanup {
+        rename compiler.command_line_tools_version {}
+        rename saved_compiler_version compiler.command_line_tools_version
+        rename portconfigure::configure_get_compiler {}
+        rename portconfigure::saved_get_compiler portconfigure::configure_get_compiler
+        set compiler.blacklist $saved_blacklist
+        set compiler.whitelist $saved_whitelist
+        set portconfigure::recompute_default_compiler 1
+    } -result $expected
+}
+
+cleanupTests
